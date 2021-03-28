@@ -75,6 +75,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private Integer availability, geofenceRadiusSize;
     private String businessTAG, userInput;
     private EditText userInputForGeofenceSize;
+    private String hello;
+
 
 
 
