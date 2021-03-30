@@ -40,7 +40,7 @@
             android:textStyle="bold" />
 
         <Button
-            android:id="@+id/btn5km"
+            android:id="@+id/btnGo"
             android:layout_width="50dp"
             android:layout_height="30dp"
             android:layout_weight="0.5"
@@ -50,17 +50,6 @@
             android:textColor="#111111"
             android:layout_marginRight="5dp"
             android:visibility="visible" />
-
-        <Button
-            android:id="@+id/btn10km"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.5"
-            android:background="@drawable/rounded_button"
-            android:backgroundTint="#FFFFFF"
-            android:onClick="btn10km"
-            android:text="10km"
-            android:visibility="gone" />
 
         <Button
             android:id="@+id/btnRemove"
