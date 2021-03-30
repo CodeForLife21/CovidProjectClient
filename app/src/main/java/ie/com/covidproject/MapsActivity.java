@@ -97,7 +97,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         database = FirebaseDatabase.getInstance();
         myRef = database.getReference("details");
         circleOptions = new CircleOptions();
-
         btnRemove.setClickable(false);
 
 
