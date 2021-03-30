@@ -15,7 +15,7 @@ import java.util.List;
 // to listen for geofence transitions
 public class GeofenceBroadcastReciever extends BroadcastReceiver {
 
-    private static final String TAG = "GeofenceBroadcastReceiv";
+    private static final String TAG = "GeofenceBroadcastReceive";
 
      
 
@@ -30,7 +30,7 @@ public class GeofenceBroadcastReciever extends BroadcastReceiver {
         GeofencingEvent geofencingEvent = GeofencingEvent.fromIntent(intent);
 
         if (geofencingEvent.hasError()) {
-            Log.d(TAG, "onReceive: Error receiving geofencing reciever");
+            Log.d(TAG, "onReceive: Error receiving geofencing receiver");
             return;
         }
 

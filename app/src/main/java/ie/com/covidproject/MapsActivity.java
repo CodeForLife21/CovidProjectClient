@@ -254,6 +254,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                 .position(businessLocation)
                                 .title(pubs.getDescription())
                                 .snippet(" Capacity " + pubs.getCapacity() + " Occupied " + pubs.getOccupancy() + " availability" + availability));
+
                         setMarkerColors(pubs);
                         showMarkersIfInGeofenceArea(userLocation, businessLocation);
                     }
