@@ -149,7 +149,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     removeCircle();
                     homeMarker.remove();
                     setUpBusinessInfoFromDB();
-                    Toast.makeText(getApplicationContext(), "Geofence waa removed", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getApplicationContext(), "Geofence was removed", Toast.LENGTH_SHORT).show();
 
                 } else {
                     Toast.makeText(getApplicationContext(), "No Geofence created", Toast.LENGTH_SHORT).show();
@@ -201,9 +201,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         geofenceRadiusSize = Integer.parseInt(userInput);
         if (distance / 1000 > geofenceRadiusSize) {
             businessMarker.remove();
-            addCircle(userLocation, geofenceRadiusSize * 1000);
             // Toast.makeText(getApplicationContext(), "distance is == " + distance / 1000 + "km", Toast.LENGTH_SHORT).show();
             addUserHomeMarker(userLocation);
+        } else {
+            Toast.makeText(getApplicationContext(), "Displaying Businesses in area", Toast.LENGTH_SHORT).show();
 
         }
 
@@ -240,6 +241,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                         setMarkerColors(pubs);
                         showMarkersIfInGeofenceArea(userLocation, businessLocation);
+                        addCircle(userLocation, geofenceRadiusSize * 1000);
                     }
                 }
             }
