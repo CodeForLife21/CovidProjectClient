@@ -71,7 +71,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private Integer availability, geofenceRadiusSize;
     private String businessTAG, userInput;
     private EditText userInputForGeofenceSize;
-    // hello world 
+
 
 
     @Override
@@ -111,29 +111,26 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 Toast.makeText(getApplicationContext(), "Need to enable location permissions", Toast.LENGTH_SHORT).show();
                 return;
             }
-            fusedLocationProviderClient.getLastLocation().addOnSuccessListener(MapsActivity.this, new OnSuccessListener<Location>() {
-                @Override
-                public void onSuccess(Location location) {
-                    displayBusinessesInGeoArea();
-                    userInput = userInputForGeofenceSize.getText().toString();
-                    Toast.makeText(getApplicationContext(), "" + userInput + "km Geofence Created", Toast.LENGTH_SHORT).show();
-                    geofenceRadiusSize = Integer.parseInt(userInput);
-                    userLocation = new LatLng(location.getLatitude(), location.getLongitude());
-                    addGeofence(userLocation, geofenceRadiusSize * 1000);   // change to KM to 1000 x 1 Meter = 1KM
-                    btnRemove.setClickable(true);
+            fusedLocationProviderClient.getLastLocation().addOnSuccessListener(MapsActivity.this, location -> {
+                displayBusinessesInGeoArea();
+                userInput = userInputForGeofenceSize.getText().toString();
+                Toast.makeText(getApplicationContext(), "" + userInput + "km Geofence Created", Toast.LENGTH_SHORT).show();
+                geofenceRadiusSize = Integer.parseInt(userInput);
+                userLocation = new LatLng(location.getLatitude(), location.getLongitude());
+                addGeofence(userLocation, geofenceRadiusSize * 1000);   // change to KM, 1000 x 1 Meter = 1KM
+                btnRemove.setClickable(true);
 
-                    // permissions check
-                    if (Build.VERSION.SDK_INT >= 29) {
-                        if (ContextCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_BACKGROUND_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                // permissions check
+                if (Build.VERSION.SDK_INT >= 29) {
+                    if (ContextCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_BACKGROUND_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                    } else {
+                        if (ActivityCompat.shouldShowRequestPermissionRationale(MapsActivity.this, Manifest.permission.ACCESS_BACKGROUND_LOCATION)) {
+                            ActivityCompat.requestPermissions(MapsActivity.this, new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION}, BACKGROUND_LOCATION_ACCESS_REQUEST_CODE);
                         } else {
-                            if (ActivityCompat.shouldShowRequestPermissionRationale(MapsActivity.this, Manifest.permission.ACCESS_BACKGROUND_LOCATION)) {
-                                ActivityCompat.requestPermissions(MapsActivity.this, new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION}, BACKGROUND_LOCATION_ACCESS_REQUEST_CODE);
-                            } else {
-                                ActivityCompat.requestPermissions(MapsActivity.this, new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION}, BACKGROUND_LOCATION_ACCESS_REQUEST_CODE);
-                            }
+                            ActivityCompat.requestPermissions(MapsActivity.this, new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION}, BACKGROUND_LOCATION_ACCESS_REQUEST_CODE);
                         }
-
                     }
+
                 }
             });
         });
@@ -143,21 +140,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         geofencingRequest = geofenceHelper.getGeofencingRequest(geofence);
         pendingIntent = geofenceHelper.getPendingIntent();
-        geofencingClient.removeGeofences(geofenceHelper.getPendingIntent()).addOnSuccessListener(this, new OnSuccessListener<Void>() {
-            @Override
-            public void onSuccess(Void aVoid) {
-                if (geofencingClient != null) {
-                    removeCircle();
-                    homeMarker.remove();
-                    setUpBusinessInfoFromDB();
-                    Toast.makeText(getApplicationContext(), "Geofence was removed", Toast.LENGTH_SHORT).show();
+        geofencingClient.removeGeofences(geofenceHelper.getPendingIntent()).addOnSuccessListener(this, aVoid -> {
+            if (geofencingClient != null) {
+                removeCircle();
+                homeMarker.remove();
+                setUpBusinessInfoFromDB();
+                Toast.makeText(getApplicationContext(), "Geofence was removed", Toast.LENGTH_SHORT).show();
 
-                } else {
-                    Toast.makeText(getApplicationContext(), "No Geofence created", Toast.LENGTH_SHORT).show();
-
-                }
+            } else {
+                Toast.makeText(getApplicationContext(), "No Geofence created", Toast.LENGTH_SHORT).show();
 
             }
+
         }).addOnFailureListener(this, e -> Toast.makeText(getApplicationContext(), "Failed To Remove Geofence", Toast.LENGTH_SHORT).show());
 
     }
@@ -191,7 +185,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .addOnSuccessListener(aVoid -> Toast.makeText(getApplicationContext(), "Geofence was added", Toast.LENGTH_SHORT).show())
                 .addOnFailureListener(e -> {
                     String errMessage = geofenceHelper.getErrorString(e);
-                    Toast.makeText(getApplicationContext(), "Geofence failed", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getApplicationContext(), "Geofence failed check location permissions and enable ", Toast.LENGTH_LONG).show();
                 });
     }
 
@@ -204,10 +198,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             businessMarker.remove();
             // Toast.makeText(getApplicationContext(), "distance is == " + distance / 1000 + "km", Toast.LENGTH_SHORT).show();
             addUserHomeMarker(userLocation);
-        } else {
-            Toast.makeText(getApplicationContext(), "Displaying Businesses in area", Toast.LENGTH_SHORT).show();
 
         }
+
 
     }
 
@@ -336,6 +329,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 mMap.setMyLocationEnabled(true);
             } else {
                 //We do not have the permission..
+                Toast.makeText(getApplicationContext(), "Please check background and location permissions", Toast.LENGTH_SHORT).show();
 
             }
         }
