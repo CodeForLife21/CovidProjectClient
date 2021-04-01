@@ -147,16 +147,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         });
     }
 
-//    public void checkUserEntry(){
-//        userInput = userInputForGeofenceSize.getText().toString();
-//        if (userInput.isEmpty()){
-//            Toast.makeText(getApplicationContext(), "Geofence size has not been set", Toast.LENGTH_SHORT).show();
-//        }
-//        else{
-//            geofenceRadiusSize = Integer.parseInt(userInput);
-//        }
-//    }
-
     private void removeGeo() {
 
         geofencingRequest = geofenceHelper.getGeofencingRequest(geofence);
@@ -378,6 +368,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
     private void addCircle(LatLng latLng, int radius) {
+        circleOptions.center(latLng);
+        circleOptions.radius(radius);
+        circleOptions.strokeColor(Color.argb(255, 255, 0, 0));
+        circleOptions.fillColor(Color.argb(64, 124, 252, 0));
+        circleOptions.strokeWidth(4);
+        mapCircle = mMap.addCircle(circleOptions);
+    }
+
+    private void addCircleOutsieArea(LatLng latLng, int radius) {
         circleOptions.center(latLng);
         circleOptions.radius(radius);
         circleOptions.strokeColor(Color.argb(255, 255, 0, 0));
