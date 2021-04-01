@@ -13,6 +13,7 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
@@ -101,16 +102,25 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         btnRemove.setClickable(false);
 
 
+
+
+
     }
 
 
     public void addUserGeoFence() {
+
 
         addGeoBtn.setOnClickListener(view -> {
             if (ActivityCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 Toast.makeText(getApplicationContext(), "Need to enable location permissions", Toast.LENGTH_SHORT).show();
                 return;
             }
+
+            if(TextUtils.isEmpty(userInputForGeofenceSize.getText().toString())){
+                Toast.makeText(getApplicationContext(), "Geofence size can not be empty", Toast.LENGTH_SHORT).show();
+            }
+            else
             fusedLocationProviderClient.getLastLocation().addOnSuccessListener(MapsActivity.this, location -> {
                 displayBusinessesInGeoArea();
                 userInput = userInputForGeofenceSize.getText().toString();
@@ -119,6 +129,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 userLocation = new LatLng(location.getLatitude(), location.getLongitude());
                 addGeofence(userLocation, geofenceRadiusSize * 1000);   // change to KM, 1000 x 1 Meter = 1KM
                 btnRemove.setClickable(true);
+
 
                 // permissions check
                 if (Build.VERSION.SDK_INT >= 29) {
@@ -135,6 +146,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             });
         });
     }
+
+//    public void checkUserEntry(){
+//        userInput = userInputForGeofenceSize.getText().toString();
+//        if (userInput.isEmpty()){
+//            Toast.makeText(getApplicationContext(), "Geofence size has not been set", Toast.LENGTH_SHORT).show();
+//        }
+//        else{
+//            geofenceRadiusSize = Integer.parseInt(userInput);
+//        }
+//    }
 
     private void removeGeo() {
 
