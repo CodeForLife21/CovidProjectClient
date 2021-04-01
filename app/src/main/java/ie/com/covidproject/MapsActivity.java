@@ -71,7 +71,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private Integer availability, geofenceRadiusSize;
     private String businessTAG, userInput;
     private EditText userInputForGeofenceSize;
-    private String hello;
+    // hello world 
 
 
     @Override
@@ -98,7 +98,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         database = FirebaseDatabase.getInstance();
         myRef = database.getReference("details");
         circleOptions = new CircleOptions();
-
         btnRemove.setClickable(false);
 
 
@@ -112,26 +111,29 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 Toast.makeText(getApplicationContext(), "Need to enable location permissions", Toast.LENGTH_SHORT).show();
                 return;
             }
-            fusedLocationProviderClient.getLastLocation().addOnSuccessListener(MapsActivity.this, location -> {
-                displayBusinessesInGeoArea();
-                userInput = userInputForGeofenceSize.getText().toString();
-                Toast.makeText(getApplicationContext(), "" + userInput + "km Geofence Created", Toast.LENGTH_SHORT).show();
-                geofenceRadiusSize = Integer.parseInt(userInput);
-                userLocation = new LatLng(location.getLatitude(), location.getLongitude());
-                addGeofence(userLocation, geofenceRadiusSize * 1000);   // change to KM to 1000 x 1 Meter = 1KM
-                btnRemove.setClickable(true);
+            fusedLocationProviderClient.getLastLocation().addOnSuccessListener(MapsActivity.this, new OnSuccessListener<Location>() {
+                @Override
+                public void onSuccess(Location location) {
+                    displayBusinessesInGeoArea();
+                    userInput = userInputForGeofenceSize.getText().toString();
+                    Toast.makeText(getApplicationContext(), "" + userInput + "km Geofence Created", Toast.LENGTH_SHORT).show();
+                    geofenceRadiusSize = Integer.parseInt(userInput);
+                    userLocation = new LatLng(location.getLatitude(), location.getLongitude());
+                    addGeofence(userLocation, geofenceRadiusSize * 1000);   // change to KM to 1000 x 1 Meter = 1KM
+                    btnRemove.setClickable(true);
 
-                // permissions check
-                if (Build.VERSION.SDK_INT >= 29) {
-                    if (ContextCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_BACKGROUND_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                    } else {
-                        if (ActivityCompat.shouldShowRequestPermissionRationale(MapsActivity.this, Manifest.permission.ACCESS_BACKGROUND_LOCATION)) {
-                            ActivityCompat.requestPermissions(MapsActivity.this, new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION}, BACKGROUND_LOCATION_ACCESS_REQUEST_CODE);
+                    // permissions check
+                    if (Build.VERSION.SDK_INT >= 29) {
+                        if (ContextCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_BACKGROUND_LOCATION) == PackageManager.PERMISSION_GRANTED) {
                         } else {
-                            ActivityCompat.requestPermissions(MapsActivity.this, new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION}, BACKGROUND_LOCATION_ACCESS_REQUEST_CODE);
+                            if (ActivityCompat.shouldShowRequestPermissionRationale(MapsActivity.this, Manifest.permission.ACCESS_BACKGROUND_LOCATION)) {
+                                ActivityCompat.requestPermissions(MapsActivity.this, new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION}, BACKGROUND_LOCATION_ACCESS_REQUEST_CODE);
+                            } else {
+                                ActivityCompat.requestPermissions(MapsActivity.this, new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION}, BACKGROUND_LOCATION_ACCESS_REQUEST_CODE);
+                            }
                         }
-                    }
 
+                    }
                 }
             });
         });
@@ -141,24 +143,22 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         geofencingRequest = geofenceHelper.getGeofencingRequest(geofence);
         pendingIntent = geofenceHelper.getPendingIntent();
-        geofencingClient.removeGeofences(geofenceHelper.getPendingIntent()).addOnSuccessListener(this, aVoid -> {
-            if (geofencingClient != null) {
-                removeCircle();
-                homeMarker.remove();
-                setUpBusinessInfoFromDB();
-                Toast.makeText(getApplicationContext(), "Geofence waa removed", Toast.LENGTH_SHORT).show();
-
-            } else {
-                Toast.makeText(getApplicationContext(), "No Geofence created", Toast.LENGTH_SHORT).show();
-
-            }
-
-        }).addOnFailureListener(this, new OnFailureListener() {
+        geofencingClient.removeGeofences(geofenceHelper.getPendingIntent()).addOnSuccessListener(this, new OnSuccessListener<Void>() {
             @Override
-            public void onFailure(@NonNull Exception e) {
-                Toast.makeText(getApplicationContext(), "Failed To Remove Geofence", Toast.LENGTH_SHORT).show();
+            public void onSuccess(Void aVoid) {
+                if (geofencingClient != null) {
+                    removeCircle();
+                    homeMarker.remove();
+                    setUpBusinessInfoFromDB();
+                    Toast.makeText(getApplicationContext(), "Geofence was removed", Toast.LENGTH_SHORT).show();
+
+                } else {
+                    Toast.makeText(getApplicationContext(), "No Geofence created", Toast.LENGTH_SHORT).show();
+
+                }
+
             }
-        });
+        }).addOnFailureListener(this, e -> Toast.makeText(getApplicationContext(), "Failed To Remove Geofence", Toast.LENGTH_SHORT).show());
 
     }
 
@@ -188,21 +188,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             return;
         }
         geofencingClient.addGeofences(geofencingRequest, pendingIntent)
-                .addOnSuccessListener(new OnSuccessListener<Void>() {
-                    @Override
-                    public void onSuccess(Void aVoid) {
-                        Toast.makeText(getApplicationContext(), "Geofence was added", Toast.LENGTH_SHORT).show();
-
-                    }
-                })
-                .addOnFailureListener(new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception e) {
-                        String errMessage = geofenceHelper.getErrorString(e);
-                        Toast.makeText(getApplicationContext(), "Geofence failed", Toast.LENGTH_SHORT).show();
-
-
-                    }
+                .addOnSuccessListener(aVoid -> Toast.makeText(getApplicationContext(), "Geofence was added", Toast.LENGTH_SHORT).show())
+                .addOnFailureListener(e -> {
+                    String errMessage = geofenceHelper.getErrorString(e);
+                    Toast.makeText(getApplicationContext(), "Geofence failed", Toast.LENGTH_SHORT).show();
                 });
     }
 
@@ -213,9 +202,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         geofenceRadiusSize = Integer.parseInt(userInput);
         if (distance / 1000 > geofenceRadiusSize) {
             businessMarker.remove();
-            addCircle(userLocation, geofenceRadiusSize * 1000);
             // Toast.makeText(getApplicationContext(), "distance is == " + distance / 1000 + "km", Toast.LENGTH_SHORT).show();
             addUserHomeMarker(userLocation);
+        } else {
+            Toast.makeText(getApplicationContext(), "Displaying Businesses in area", Toast.LENGTH_SHORT).show();
 
         }
 
@@ -252,6 +242,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                         setMarkerColors(pubs);
                         showMarkersIfInGeofenceArea(userLocation, businessLocation);
+                        addCircle(userLocation, geofenceRadiusSize * 1000);
                     }
                 }
             }
