@@ -10,7 +10,6 @@ import android.app.PendingIntent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Geocoder;
-import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -33,8 +32,6 @@ import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -54,7 +51,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private LatLng businessLocation, userLocation;
     private GoogleMap mMap;
     private GeofencingClient geofencingClient;
-    private Geocoder geocoder;
+    // private Geocoder geocoder;
     private Pubs pubs;
     private CircleOptions circleOptions;
     private Circle mapCircle;
@@ -74,17 +71,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private EditText userInputForGeofenceSize;
 
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
-        mapFragment.getMapAsync(this);
+        if (mapFragment != null) {
+            mapFragment.getMapAsync(this);
+        }
 
         geofencingClient = LocationServices.getGeofencingClient(this);
-        geocoder = new Geocoder(this);
+        //geocoder = new Geocoder(this);
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
         geofenceHelper = new GeofenceHelper(this);
         addGeoBtn = findViewById(R.id.btnGo);
@@ -102,51 +100,76 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         btnRemove.setClickable(false);
 
 
-
-
-
     }
 
-
+    /*
+     Methdod to activate geofence
+     check for permissions
+    */
     public void addUserGeoFence() {
 
-
+        // on button click, first check permissions to see if location services enabled
         addGeoBtn.setOnClickListener(view -> {
-            if (ActivityCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(getApplicationContext(), "Need to enable location permissions", Toast.LENGTH_SHORT).show();
+            if (Build.VERSION.SDK_INT >= 29) {
+                //We need background permission
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_BACKGROUND_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                    creatingGeo();
+                } else {
+                    if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_BACKGROUND_LOCATION)) {
+                        //We show a dialog and ask for permission
+                        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION}, BACKGROUND_LOCATION_ACCESS_REQUEST_CODE);
+                    } else {
+                        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION}, BACKGROUND_LOCATION_ACCESS_REQUEST_CODE);
+                    }
+                }
+
+            } else {
+                creatingGeo();
+            }
+
+        });
+    }
+   /* This Method creates a geofence based on the users current location
+    User enters their geofence size from editText
+    displays all available bussinesses within that geofence size
+    displays geofence radius using Circle object
+    */
+
+    public void creatingGeo() {
+        if (TextUtils.isEmpty(userInputForGeofenceSize.getText().toString())) {
+            Toast.makeText(getApplicationContext(), "Geofence size can not be empty", Toast.LENGTH_SHORT).show();
+        } else
+            // using fusedLocationProviderClient to return the best and most recent location currently available.
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION}, BACKGROUND_LOCATION_ACCESS_REQUEST_CODE);
                 return;
             }
+        fusedLocationProviderClient.getLastLocation().addOnSuccessListener(MapsActivity.this, location -> {
+            // passing the user input from the editText field to String userInput
+            userInput = userInputForGeofenceSize.getText().toString();
+            Toast.makeText(getApplicationContext(), "" + userInput + "km Geofence Created", Toast.LENGTH_SHORT).show();
+            // parsing userInput to Int and assigning it to Int geofenceRadiusSize
+            geofenceRadiusSize = Integer.parseInt(userInput);
+            // get userLocation lat and lng
+            userLocation = new LatLng(location.getLatitude(), location.getLongitude());
+            //  addGeofence method passing in location of user along with geofence size
+            addGeofence(userLocation, geofenceRadiusSize * 1000);   // change to KM, 1000 x 1 Meter = 1KM
+            //  displayBusinessesInGeoArea method to display all businesses inside geofence radius
+            displayBusinessesInGeoArea();
+            // enable remove geofence button to clickable
+            btnRemove.setClickable(true);
 
-            if(TextUtils.isEmpty(userInputForGeofenceSize.getText().toString())){
-                Toast.makeText(getApplicationContext(), "Geofence size can not be empty", Toast.LENGTH_SHORT).show();
-            }
-            else
-            fusedLocationProviderClient.getLastLocation().addOnSuccessListener(MapsActivity.this, location -> {
-                displayBusinessesInGeoArea();
-                userInput = userInputForGeofenceSize.getText().toString();
-                Toast.makeText(getApplicationContext(), "" + userInput + "km Geofence Created", Toast.LENGTH_SHORT).show();
-                geofenceRadiusSize = Integer.parseInt(userInput);
-                userLocation = new LatLng(location.getLatitude(), location.getLongitude());
-                addGeofence(userLocation, geofenceRadiusSize * 1000);   // change to KM, 1000 x 1 Meter = 1KM
-                btnRemove.setClickable(true);
 
-
-                // permissions check
-                if (Build.VERSION.SDK_INT >= 29) {
-                    if (ContextCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_BACKGROUND_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                    } else {
-                        if (ActivityCompat.shouldShowRequestPermissionRationale(MapsActivity.this, Manifest.permission.ACCESS_BACKGROUND_LOCATION)) {
-                            ActivityCompat.requestPermissions(MapsActivity.this, new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION}, BACKGROUND_LOCATION_ACCESS_REQUEST_CODE);
-                        } else {
-                            ActivityCompat.requestPermissions(MapsActivity.this, new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION}, BACKGROUND_LOCATION_ACCESS_REQUEST_CODE);
-                        }
-                    }
-
-                }
-            });
         });
     }
 
+
+    /*
+    This Method removes the Geofence, saving battery life
+    Removes circle created
+    removes home marker
+    restores data from firebase, displaying all business markers on map
+     */
     private void removeGeo() {
 
         geofencingRequest = geofenceHelper.getGeofencingRequest(geofence);
@@ -167,6 +190,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
+    /*
+    This Method is used to to remove the geofence after button click
+    */
+
     public void removeGeofence() {
 
         btnRemove.setOnClickListener(view -> {
@@ -174,6 +201,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         });
 
     }
+
+
+    /*
+    Method to add Geofence
+    */
 
     private void addGeofence(LatLng latLng, float radius) {
 
@@ -201,20 +233,29 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
 
+    /*
+    Method to display all markers within geofence size
+    calculates the distance from two Latlng points using the SphericalUtil library
+    distance is divided by 1000 to convert to KM
+    if distance greater than user geofence size remove them markers from map
+   */
     public void showMarkersIfInGeofenceArea(LatLng from, LatLng too) {
 
         Double distance = SphericalUtil.computeDistanceBetween(from, too);
         geofenceRadiusSize = Integer.parseInt(userInput);
         if (distance / 1000 > geofenceRadiusSize) {
             businessMarker.remove();
-            // Toast.makeText(getApplicationContext(), "distance is == " + distance / 1000 + "km", Toast.LENGTH_SHORT).show();
             addUserHomeMarker(userLocation);
 
         }
 
 
     }
-
+    /*
+     Method to set the colors of the markers on the map
+     depending on the how many people are occupying the
+     businesses
+    */
 
     public void setMarkerColors(Pubs pubs) {
 
@@ -226,7 +267,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             businessMarker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
     }
 
+    /*
+        Method to display businesses if in Geofence area
+        get info from firebase
+        set marker colors based on occupancy
+        display
+
+      */
+
     public void displayBusinessesInGeoArea() {
+        // get info from firebase
         myRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -243,9 +293,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                 .position(businessLocation)
                                 .title(pubs.getDescription())
                                 .snippet(" Capacity " + pubs.getCapacity() + " Occupied " + pubs.getOccupancy() + " availability" + availability));
-
+                        // set marker colors based on occupancy
                         setMarkerColors(pubs);
+                        // display businesses within Geo size,remove if not
                         showMarkersIfInGeofenceArea(userLocation, businessLocation);
+                        // add circle center of user location and set its size.  * 1000 is to covert to KM as its originally meters
                         addCircle(userLocation, geofenceRadiusSize * 1000);
                     }
                 }
@@ -260,22 +312,33 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         enableUserLocation();
     }
 
+      /*
+        Method to populate Map with data from firebase DB
+      */
 
     public void setUpBusinessInfoFromDB() {
-
+        // get info from firebase
         myRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                // clear map
                 mMap.clear();
                 for (DataSnapshot s : dataSnapshot.getChildren()) {
+                    // clear arraylist
                     businessList.clear();
+                    // get bar info from firebase
                     pubs = s.getValue(Pubs.class);
+                    // add bar info into arrayList
                     businessList.add(pubs);
 
+                    // looping through ArrayList with firebase info
                     for (int i = 0; i < businessList.size(); i++) {
+                        // get lat and lng of businesses
                         businessLocation = new LatLng(pubs.getLatitude(), pubs.getLongitude());
                         if (mMap != null) {
+                            // calculate availability
                             availability = pubs.getCapacity() - pubs.getOccupancy();
+                            // add markers to map from LatLng businessLocation, including description, capacity, occupancy of each businessLocation
                             businessMarker = mMap.addMarker(new MarkerOptions()
                                     .position(businessLocation)
                                     .title(pubs.getDescription())
@@ -296,6 +359,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         enableUserLocation();
     }
 
+     /*
+        Display GoogleMap
+        populate Map with firebase Info
+      */
+
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
@@ -304,6 +372,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
 
+    /*
+      Permissions check to enable user location
+     */
     private void enableUserLocation() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             mMap.setMyLocationEnabled(true);
@@ -320,7 +391,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
-
+    /*
+     Permissions Check
+    */
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
 
@@ -357,6 +430,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
+     /*
+        Setting a home marker based on user current location
+      */
+
     private void addUserHomeMarker(LatLng latLng) {
         homeMarker = mMap.addMarker(new MarkerOptions()
                 .position(latLng)
@@ -366,7 +443,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
-
+    /*
+       Adding a circle on center of users location
+       Green circle, with red outer stroke
+     */
     private void addCircle(LatLng latLng, int radius) {
         circleOptions.center(latLng);
         circleOptions.radius(radius);
@@ -376,15 +456,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mapCircle = mMap.addCircle(circleOptions);
     }
 
-    private void addCircleOutsieArea(LatLng latLng, int radius) {
-        circleOptions.center(latLng);
-        circleOptions.radius(radius);
-        circleOptions.strokeColor(Color.argb(255, 255, 0, 0));
-        circleOptions.fillColor(Color.argb(64, 255, 0, 0));
-        circleOptions.strokeWidth(4);
-        mapCircle = mMap.addCircle(circleOptions);
-    }
-
+    /*
+        Method to remove circle from map
+     */
     private void removeCircle() {
         if (mapCircle != null) {
             mapCircle.remove();
