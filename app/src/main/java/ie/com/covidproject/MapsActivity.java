@@ -4,12 +4,10 @@ import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
-
 import android.Manifest;
 import android.app.PendingIntent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
-import android.location.Geocoder;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -51,7 +49,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private LatLng businessLocation, userLocation;
     private GoogleMap mMap;
     private GeofencingClient geofencingClient;
-    // private Geocoder geocoder;
     private Pubs pubs;
     private CircleOptions circleOptions;
     private Circle mapCircle;
@@ -64,11 +61,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private String GEOFENCE_ID = "UNIQUE_ID";
     private static final String TAG = "MapsActivity";
     private PendingIntent pendingIntent;
-    private int km;
     private GeofencingRequest geofencingRequest;
     private Geofence geofence;
     private Integer availability, geofenceRadiusSize;
-    private String businessTAG, userInput;
+    private String userInput;
     private EditText userInputForGeofenceSize;
 
 
@@ -83,7 +79,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
         geofencingClient = LocationServices.getGeofencingClient(this);
-        //geocoder = new Geocoder(this);
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
         geofenceHelper = new GeofenceHelper(this);
         addGeoBtn = findViewById(R.id.btnGo);
@@ -96,10 +91,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         businessList = new ArrayList<>();
         database = FirebaseDatabase.getInstance();
-        myRef = database.getReference("details");
+        myRef = database.getReference("Business_DB");
         circleOptions = new CircleOptions();
         btnRemove.setClickable(false);
-
 
     }
 
@@ -164,7 +158,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         });
     }
 
-
     /*
     This Method removes the Geofence, saving battery life
     Removes circle created
@@ -203,7 +196,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
-
     /*
     Method to add Geofence
     */
@@ -226,7 +218,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     Toast.makeText(getApplicationContext(), "Geofence failed check location permissions and enable ", Toast.LENGTH_LONG).show();
                 });
     }
-
 
     /*
     Method to display all markers within geofence size
@@ -251,7 +242,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      depending on the how many people are occupying the
      businesses
     */
-
     public void setMarkerColors(Pubs pubs) {
 
         if ((pubs.getOccupancy() * 100) / (pubs.getCapacity()) <= 60) {
@@ -261,7 +251,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         } else
             businessMarker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
     }
-
     /*
         Method to display businesses if in Geofence area
         get info from firebase
@@ -269,7 +258,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         display
 
       */
-
     public void displayBusinessesInGeoArea() {
         // get info from firebase
         myRef.addValueEventListener(new ValueEventListener() {
@@ -353,12 +341,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         enableUserLocation();
     }
-
      /*
         Display GoogleMap
         populate Map with firebase Info
       */
-
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
@@ -366,10 +352,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
-
     /*
       Permissions check to enable user location
      */
+
     private void enableUserLocation() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             mMap.setMyLocationEnabled(true);
